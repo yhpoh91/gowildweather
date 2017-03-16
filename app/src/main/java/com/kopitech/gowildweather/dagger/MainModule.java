@@ -63,7 +63,7 @@ public class MainModule {
     @Provides
     @Singleton
     public LocationDatasource provideLocationDatasource(){
-        return new GPSLocationDatasource(provideExecutorService());
+        return new GPSLocationDatasource(provideExecutorService(), provideContext());
     }
 
     @Provides

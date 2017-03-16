@@ -22,4 +22,10 @@ public class LocationDto {
     public BigDecimal getLongitude() {
         return longitude;
     }
+
+    @Override
+    public String toString() {
+        String readableString = String.format("lat:%s, lng:%s", latitude.toPlainString(), longitude.toPlainString());
+        return readableString;
+    }
 }
