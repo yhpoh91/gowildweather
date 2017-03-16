@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.kopitech.gowildweather">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".dagger.DaggerApplication"
         android:allowBackup="true"

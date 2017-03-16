@@ -2,6 +2,8 @@ package com.kopitech.gowildweather.dagger;
 
 import com.kopitech.gowildweather.activity.MainActivity;
 
+import javax.inject.Singleton;
+
 import dagger.Component;
 
 /**
@@ -9,6 +11,7 @@ import dagger.Component;
  */
 
 @Component(modules = { MainModule.class })
+@Singleton
 public interface GraphComponent {
     void inject(MainActivity mainActivity);
 
