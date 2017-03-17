@@ -1,24 +1,31 @@
 package com.kopitech.gowildweather.activity;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Bundle;
+import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.kopitech.gowildweather.R;
 import com.kopitech.gowildweather.dagger.DaggerApplication;
 import com.kopitech.gowildweather.dataobject.LocationDto;
+import com.kopitech.gowildweather.dataobject.SpeechInterpretationDto;
 import com.kopitech.gowildweather.dataobject.WeatherDto;
 import com.kopitech.gowildweather.datasource.location.LocationDatasource;
 import com.kopitech.gowildweather.datasource.location.OnLocationCallback;
-import com.kopitech.gowildweather.datasource.weather.OnWeatherCallback;
 import com.kopitech.gowildweather.datasource.weather.WeatherDatasource;
+import com.kopitech.gowildweather.speech.interpreter.SpeechInterpreter;
+import com.kopitech.gowildweather.speech.interpreter.SpeechInterpreterCallback;
 
-import java.math.BigDecimal;
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -33,6 +40,9 @@ public class MainActivity extends AppCompatActivity {
     @Inject
     LocationDatasource locationDatasource;
 
+    @Inject
+    SpeechInterpreter speechInterpreter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Request required permission
         requestRequiredPermission();
+
+        startListening();
     }
 
     private void getWeatherFromCurrentLocation() {
@@ -89,6 +101,55 @@ public class MainActivity extends AppCompatActivity {
         }
         else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    private void startListening(){
+        if(!isConnected()){
+            Toast.makeText(this, "No internet connectivity", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        startActivityForResult(intent, 5678);
+    }
+
+    public  boolean isConnected() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo net = cm.getActiveNetworkInfo();
+        if (net != null && net.isAvailable() && net.isConnected()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 5678 && resultCode == RESULT_OK) {
+            List<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            for(String match : matches){
+                Log.d(TAG, match);
+            }
+
+            if(matches.size() < 1){
+                return;
+            }
+
+            String matchText = matches.get(0);
+            Log.d(TAG, "Choosing " + matchText);
+
+            this.speechInterpreter.interpretInBackground(matchText, new SpeechInterpreterCallback() {
+                @Override
+                public void onReceiveResult(SpeechInterpretationDto speechInterpretationDto) {
+                    Log.d(TAG, speechInterpretationDto.toString());
+                }
+            });
+        }
+        else {
+            super.onActivityResult(requestCode, resultCode, data);
         }
     }
 }

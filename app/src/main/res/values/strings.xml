@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">GoWildWeather</string>
     <string name="wunderground_api_key">f14fe8bb6ba1c67e</string>
+    <string name="api_ai_api_key">263bb552e9f9434d9ac159a36883f353</string>
 </resources>

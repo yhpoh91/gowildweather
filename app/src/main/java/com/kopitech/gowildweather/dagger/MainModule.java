@@ -10,6 +10,8 @@ import com.kopitech.gowildweather.datasource.location.LocationDatasource;
 import com.kopitech.gowildweather.datasource.location.gps.GPSLocationDatasource;
 import com.kopitech.gowildweather.datasource.weather.WeatherDatasource;
 import com.kopitech.gowildweather.datasource.weather.wunderground.WundergroundWeatherDatasource;
+import com.kopitech.gowildweather.speech.interpreter.SpeechInterpreter;
+import com.kopitech.gowildweather.speech.interpreter.apiai.ApiAiSpeechInterpreter;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -70,5 +72,11 @@ public class MainModule {
     @Singleton
     public WeatherDatasource provideWeatherDatasource(){
         return new WundergroundWeatherDatasource(provideExecutorService(), provideContext(), provideHttpDatasource(), provideGson());
+    }
+
+    @Provides
+    @Singleton
+    public SpeechInterpreter provideSpeechInterpreter(){
+        return new ApiAiSpeechInterpreter(provideExecutorService(), provideContext());
     }
 }
