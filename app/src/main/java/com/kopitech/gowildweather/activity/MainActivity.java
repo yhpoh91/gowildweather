@@ -201,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
             this.locationDatasource.getLocationInBackground(new OnLocationCallback() {
                 @Override
                 public void onReceiveLocationInformation(LocationDto locationDto) {
-                    checkWeather(locationDto);
+                    checkWeatherAtLocation(locationDto);
                 }
             });
         }
@@ -212,13 +212,13 @@ public class MainActivity extends AppCompatActivity {
             this.geocodeDatasource.getLocationInBackground(location, new OnGeocodeCallback() {
                 @Override
                 public void onGeocodeResult(LocationDto locationDto) {
-                    checkWeather(locationDto);
+                    checkWeatherAtLocation(locationDto);
                 }
             });
         }
     }
 
-    private void checkWeather(LocationDto locationDto){
+    private void checkWeatherAtLocation(LocationDto locationDto){
         // Update View Model
         final WeatherDto weatherDto = this.weatherDatasource.getCurrentWeather(locationDto);
         this.mainViewModel.setWeather(weatherDto.getWeather());
