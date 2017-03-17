@@ -12,6 +12,9 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.kopitech.gowildweather.R;
@@ -19,12 +22,16 @@ import com.kopitech.gowildweather.dagger.DaggerApplication;
 import com.kopitech.gowildweather.dataobject.LocationDto;
 import com.kopitech.gowildweather.dataobject.SpeechInterpretationDto;
 import com.kopitech.gowildweather.dataobject.WeatherDto;
+import com.kopitech.gowildweather.datasource.geocode.GeocodeDatasource;
+import com.kopitech.gowildweather.datasource.geocode.OnGeocodeCallback;
 import com.kopitech.gowildweather.datasource.location.LocationDatasource;
 import com.kopitech.gowildweather.datasource.location.OnLocationCallback;
 import com.kopitech.gowildweather.datasource.weather.WeatherDatasource;
 import com.kopitech.gowildweather.speech.interpreter.SpeechInterpreter;
 import com.kopitech.gowildweather.speech.interpreter.SpeechInterpreterCallback;
+import com.kopitech.gowildweather.viewmodel.MainViewModel;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -33,6 +40,15 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MA";
 
     private boolean allowWeatherFromCurrentLocation;
+    private MainViewModel mainViewModel;
+
+    private Button btnListen;
+    private TextView tvQuery;
+    private TextView tvLocation;
+    private TextView tvWeather;
+    private TextView tvTemperature;
+    private TextView tvFeelsLikeTemperature;
+    private TextView tvWindSpeed;
 
     @Inject
     WeatherDatasource weatherDatasource;
@@ -43,26 +59,35 @@ public class MainActivity extends AppCompatActivity {
     @Inject
     SpeechInterpreter speechInterpreter;
 
+    @Inject
+    GeocodeDatasource geocodeDatasource;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         DaggerApplication.component().inject(this);
 
+        setupViews();
+
+        this.mainViewModel = new MainViewModel();
         this.allowWeatherFromCurrentLocation = false;
 
-        // Request required permission
-        requestRequiredPermission();
-
-        startListening();
     }
 
-    private void getWeatherFromCurrentLocation() {
-        locationDatasource.getLocationInBackground(new OnLocationCallback() {
+    private void setupViews() {
+        this.btnListen = (Button) findViewById(R.id.btn_listen);
+        this.tvQuery = (TextView) findViewById(R.id.tv_query);
+        this.tvLocation = (TextView) findViewById(R.id.tv_location);
+        this.tvWeather = (TextView) findViewById(R.id.tv_weather);
+        this.tvTemperature = (TextView) findViewById(R.id.tv_temperature);
+        this.tvFeelsLikeTemperature = (TextView) findViewById(R.id.tv_feels_like);
+        this.tvWindSpeed = (TextView) findViewById(R.id.tv_windspeed);
+
+        this.btnListen.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onReceiveLocationInformation(LocationDto locationDto) {
-                WeatherDto weatherDto = weatherDatasource.getCurrentWeather(locationDto);
-                Log.i(TAG, weatherDto.toString());
+            public void onClick(View view) {
+                startListening();
             }
         });
     }
@@ -75,9 +100,6 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, permissions, 1234);
             return;
         }
-
-
-        getWeatherFromCurrentLocation();
     }
 
     @Override
@@ -91,7 +113,6 @@ public class MainActivity extends AppCompatActivity {
             if(result == PackageManager.PERMISSION_GRANTED){
                 Log.i(TAG, "Permission granted for access fine location");
                 this.allowWeatherFromCurrentLocation = true;
-                getWeatherFromCurrentLocation();
             }
             else{
                 Log.w(TAG, "Permission denied for access fine location");
@@ -140,16 +161,76 @@ public class MainActivity extends AppCompatActivity {
 
             String matchText = matches.get(0);
             Log.d(TAG, "Choosing " + matchText);
+            this.mainViewModel.setQuery(matchText);
 
             this.speechInterpreter.interpretInBackground(matchText, new SpeechInterpreterCallback() {
                 @Override
                 public void onReceiveResult(SpeechInterpretationDto speechInterpretationDto) {
-                    Log.d(TAG, speechInterpretationDto.toString());
+                    if(!speechInterpretationDto.getAction().toLowerCase().equals("weather")){
+                        // Not Weather checking, ignore
+                    }
+
+                    // Check weather at given location
+                    checkWeather(speechInterpretationDto);
                 }
             });
         }
         else {
             super.onActivityResult(requestCode, resultCode, data);
         }
+    }
+
+    private void checkWeather(SpeechInterpretationDto speechInterpretationDto) {
+        String location = speechInterpretationDto.getLocation();
+
+        if(location == null || location.isEmpty()){
+            // use current location
+            this.mainViewModel.setLocation("Current GPS Location");
+
+            // Request required location permission
+            requestRequiredPermission();
+
+            this.locationDatasource.getLocationInBackground(new OnLocationCallback() {
+                @Override
+                public void onReceiveLocationInformation(LocationDto locationDto) {
+                    checkWeather(locationDto);
+                }
+            });
+        }
+        else{
+            // use queried location
+            this.mainViewModel.setLocation(location);
+
+            this.geocodeDatasource.getLocationInBackground(location, new OnGeocodeCallback() {
+                @Override
+                public void onGeocodeResult(LocationDto locationDto) {
+                    checkWeather(locationDto);
+                }
+            });
+        }
+    }
+
+    private void checkWeather(LocationDto locationDto){
+        final WeatherDto weatherDto = this.weatherDatasource.getCurrentWeather(locationDto);
+        this.mainViewModel.setWeather(weatherDto.getWeather());
+        this.mainViewModel.setTemperature(weatherDto.getActualTemperature());
+        this.mainViewModel.setFeelsLikeTemperature(weatherDto.getFeelsLikeTemperature());
+        this.mainViewModel.setWindSpeed(weatherDto.getWindSpeed());
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                refreshViews();
+            }
+        });
+    }
+
+    private void refreshViews(){
+        this.tvQuery.setText(this.mainViewModel.getQuery());
+        this.tvLocation.setText(this.mainViewModel.getLocation());
+        this.tvWeather.setText(this.mainViewModel.getWeather());
+        this.tvTemperature.setText(this.mainViewModel.getTemperature().setScale(2, BigDecimal.ROUND_FLOOR).toPlainString() + "C");
+        this.tvFeelsLikeTemperature.setText(this.mainViewModel.getFeelsLikeTemperature().setScale(2, BigDecimal.ROUND_FLOOR).toPlainString() + "C");
+        this.tvWindSpeed.setText(this.mainViewModel.getWindSpeed().toPlainString() + "km/h");
     }
 }

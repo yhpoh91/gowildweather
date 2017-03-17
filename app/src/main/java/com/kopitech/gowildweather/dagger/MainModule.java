@@ -4,6 +4,8 @@ import android.app.Application;
 import android.content.Context;
 
 import com.google.gson.Gson;
+import com.kopitech.gowildweather.datasource.geocode.GeocodeDatasource;
+import com.kopitech.gowildweather.datasource.geocode.google.GoogleGeocodeDatasource;
 import com.kopitech.gowildweather.datasource.http.HttpDatasource;
 import com.kopitech.gowildweather.datasource.http.okhttp.OkHttpDatasource;
 import com.kopitech.gowildweather.datasource.location.LocationDatasource;
@@ -78,5 +80,11 @@ public class MainModule {
     @Singleton
     public SpeechInterpreter provideSpeechInterpreter(){
         return new ApiAiSpeechInterpreter(provideExecutorService(), provideContext());
+    }
+
+    @Provides
+    @Singleton
+    public GeocodeDatasource provideGeocodeDatasource(){
+        return new GoogleGeocodeDatasource(provideExecutorService(), provideHttpDatasource(), provideGson());
     }
 }
