@@ -38,6 +38,8 @@ import javax.inject.Inject;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MA";
+    public static final int REQUEST_CODE_LISTEN = 5678;
+    public static final int REQUEST_CODE_PERMISSION = 1234;
 
     private boolean allowWeatherFromCurrentLocation;
     private MainViewModel mainViewModel;
@@ -97,14 +99,14 @@ public class MainActivity extends AppCompatActivity {
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
             String[] permissions = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
-            ActivityCompat.requestPermissions(this, permissions, 1234);
+            ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE_PERMISSION);
             return;
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if(requestCode == 1234){
+        if(requestCode == REQUEST_CODE_PERMISSION){
             if(grantResults.length < 1){
                 throw new RuntimeException("Permission Request return no result for access fine location");
             }
@@ -134,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        startActivityForResult(intent, 5678);
+        startActivityForResult(intent, REQUEST_CODE_LISTEN);
     }
 
     public  boolean isConnected() {
@@ -149,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == 5678 && resultCode == RESULT_OK) {
+        if (requestCode == REQUEST_CODE_LISTEN && resultCode == RESULT_OK) {
             List<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             for(String match : matches){
                 Log.d(TAG, match);
@@ -159,9 +161,11 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
+            // Take first match (assuming first is the most accurate)
             String matchText = matches.get(0);
             Log.d(TAG, "Choosing " + matchText);
 
+            // Reset View
             this.mainViewModel.reset();
             this.mainViewModel.setQuery(matchText);
             refreshViews();
@@ -215,12 +219,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkWeather(LocationDto locationDto){
+        // Update View Model
         final WeatherDto weatherDto = this.weatherDatasource.getCurrentWeather(locationDto);
         this.mainViewModel.setWeather(weatherDto.getWeather());
         this.mainViewModel.setTemperature(weatherDto.getActualTemperature());
         this.mainViewModel.setFeelsLikeTemperature(weatherDto.getFeelsLikeTemperature());
         this.mainViewModel.setWindSpeed(weatherDto.getWindSpeed());
 
+        // refresh view
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
