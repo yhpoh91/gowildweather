@@ -171,6 +171,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onReceiveResult(SpeechInterpretationDto speechInterpretationDto) {
                     if(!speechInterpretationDto.getAction().toLowerCase().equals("weather")){
                         // Not Weather checking, ignore
+                        return;
                     }
 
                     // Check weather at given location
