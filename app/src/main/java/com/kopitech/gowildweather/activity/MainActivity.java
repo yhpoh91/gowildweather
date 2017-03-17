@@ -161,7 +161,10 @@ public class MainActivity extends AppCompatActivity {
 
             String matchText = matches.get(0);
             Log.d(TAG, "Choosing " + matchText);
+
+            this.mainViewModel.reset();
             this.mainViewModel.setQuery(matchText);
+            refreshViews();
 
             this.speechInterpreter.interpretInBackground(matchText, new SpeechInterpreterCallback() {
                 @Override

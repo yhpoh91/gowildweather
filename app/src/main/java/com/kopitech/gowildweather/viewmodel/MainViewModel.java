@@ -23,6 +23,15 @@ public class MainViewModel {
         windSpeed = BigDecimal.ZERO;
     }
 
+    public void reset(){
+        query = "";
+        location = "";
+        weather = "";
+        temperature = BigDecimal.ZERO;
+        feelsLikeTemperature = BigDecimal.ZERO;
+        windSpeed = BigDecimal.ZERO;
+    }
+
     public String getQuery() {
         return query;
     }
